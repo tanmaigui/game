@@ -105,13 +105,13 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
-import { useMinesweeper } from '../games/useMinesweeper.js'
+import { useMinesweeper } from '@/games/useMinesweeper'
 
 const {
   board, revealed, flagged, gameStatus, timer, highScore,
-  remainingMines, mineCount, level, startGame,
+  remainingMines, level, startGame,
   getCellStyle, handleCellClick, handleCellRightClick,
   handleCellPointerDown, handleCellPointerUp
 } = useMinesweeper()

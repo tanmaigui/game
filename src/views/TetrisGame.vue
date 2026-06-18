@@ -86,7 +86,7 @@
       </button>
     </div>
 
-    <!-- 开始/暂停/结束遮罩 -->
+    <!-- 开始遮罩 -->
     <div class="board-overlay" v-if="!isRunning && !isGameOver">
       <div class="overlay-inner">
         <div class="game-icon-large">🧩</div>
@@ -99,6 +99,7 @@
       </div>
     </div>
 
+    <!-- 暂停遮罩 -->
     <div class="board-overlay" v-if="isPaused">
       <div class="overlay-inner">
         <div class="gameover-text">已暂停</div>
@@ -108,6 +109,7 @@
       </div>
     </div>
 
+    <!-- 结束遮罩 -->
     <div class="board-overlay" v-if="isGameOver">
       <div class="overlay-inner gameover-overlay">
         <div class="gameover-text">游戏结束</div>
@@ -121,9 +123,9 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, onUnmounted } from 'vue'
-import { useTetris } from '../games/useTetris.js'
+import { useTetris } from '@/games/useTetris'
 
 const {
   renderBoard, nextPiece, score, lines, level, highScore,
@@ -143,8 +145,7 @@ const cellSize = computed(() => {
   return 10
 })
 
-// 键盘事件
-function onKeyDown(e) {
+function onKeyDown(e: KeyboardEvent): void {
   if (!isRunning.value) return
   switch (e.key) {
     case 'ArrowLeft': case 'a': case 'A': e.preventDefault(); moveLeft(); break
@@ -199,7 +200,6 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
 .score-item .value.level { color: #4cd964; }
 .score-item .value.high { color: #ffd700; font-size: 14px; }
 
-/* 游戏主区域 */
 .game-main {
   display: flex;
   gap: 10px;
@@ -235,7 +235,6 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
   border-color: rgba(255,255,255,0.3);
 }
 
-/* 侧边栏 */
 .side-panel {
   display: flex;
   flex-direction: column;
@@ -282,7 +281,6 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
   border-radius: 2px;
 }
 
-/* 操作按钮 */
 .controls {
   display: flex;
   align-items: center;
@@ -320,12 +318,10 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
 .drop-btn { color: #ff9500; }
 .pause-btn { color: #ffd700; }
 
-/* PC端隐藏按钮组 */
 @media (min-width: 769px) {
   .controls { display: none; }
 }
 
-/* 遮罩 */
 .board-overlay {
   position: fixed;
   inset: 0;

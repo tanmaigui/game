@@ -96,7 +96,7 @@
       </div>
     </div>
 
-    <!-- 底部方向键（移动端） -->
+    <!-- 移动端方向键 -->
     <div class="mobile-controls">
       <div class="dpad">
         <button class="dpad-btn up" @touchstart.prevent="changeDirection('UP')">
@@ -121,9 +121,9 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted, onUnmounted } from 'vue'
-import { useSnakeGame } from '../games/useSnakeGame.js'
+import { useSnakeGame } from '@/games/useSnakeGame'
 
 const {
   snake,
@@ -144,9 +144,8 @@ const {
 
 const boardPixelSize = computed(() => cellSize.value * boardWidth)
 
-// 键盘事件
-function onKeyDown(e) {
-  const keyMap = {
+function onKeyDown(e: KeyboardEvent): void {
+  const keyMap: Record<string, string> = {
     ArrowUp: 'UP',
     ArrowDown: 'DOWN',
     ArrowLeft: 'LEFT',
@@ -163,9 +162,8 @@ function onKeyDown(e) {
   const dir = keyMap[e.key]
   if (dir) {
     e.preventDefault()
-    changeDirection(dir)
+    changeDirection(dir as 'UP' | 'DOWN' | 'LEFT' | 'RIGHT')
   }
-  // 空格暂停
   if (e.key === ' ' || e.code === 'Space') {
     e.preventDefault()
     togglePause()
@@ -194,7 +192,6 @@ onUnmounted(() => {
   touch-action: manipulation;
 }
 
-/* 顶部栏 */
 .game-topbar {
   width: 100%;
   max-width: 440px;
@@ -257,7 +254,6 @@ onUnmounted(() => {
   font-size: 16px;
 }
 
-/* 游戏画布区域 */
 .game-board-wrapper {
   flex: 1;
   display: flex;
@@ -282,7 +278,6 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
-/* 食物 */
 .food {
   position: absolute;
   display: flex;
@@ -302,7 +297,6 @@ onUnmounted(() => {
   to { transform: scale(1.05); }
 }
 
-/* 蛇 */
 .snake-seg {
   position: absolute;
   border-radius: 3px;
@@ -320,7 +314,6 @@ onUnmounted(() => {
   z-index: 2;
 }
 
-/* 遮罩层 */
 .overlay {
   position: absolute;
   inset: 0;
@@ -394,7 +387,6 @@ onUnmounted(() => {
   line-height: 1.5;
 }
 
-/* 移动端方向键 */
 .mobile-controls {
   padding: 12px 0;
   padding-bottom: max(12px, env(safe-area-inset-bottom, 12px));
@@ -441,7 +433,6 @@ onUnmounted(() => {
   border-color: rgba(255, 215, 0, 0.2);
 }
 
-/* PC端隐藏虚拟方向键 */
 @media (min-width: 769px) {
   .mobile-controls {
     display: none;

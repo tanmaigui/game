@@ -75,8 +75,8 @@
   </div>
 </template>
 
-<script setup>
-import { useWhackAMole } from '../games/useWhackAMole.js'
+<script setup lang="ts">
+import { useWhackAMole } from '@/games/useWhackAMole'
 
 const {
   holes, score, highScore, timeLeft, progressPercent,
@@ -155,7 +155,6 @@ const {
   font-weight: 600;
 }
 
-/* 地鼠网格 */
 .mole-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -226,7 +225,6 @@ const {
   75% { transform: translateX(3px); }
 }
 
-/* 开始/结束 */
 .game-board-wrapper {
   display: flex;
   align-items: center;

@@ -1,32 +1,33 @@
 import { ref, computed } from 'vue'
+import type { TetrisCell, Piece, Position } from '@/types/game'
 
 const COLS = 10
 const ROWS = 20
 const INITIAL_SPEED = 800
 
 // 7种经典方块
-const PIECES = [
+const PIECES: Piece[] = [
   // I
-  { shape: [[1,1,1,1]], color: '#00f0f0' },
+  { shape: [[1, 1, 1, 1]], color: '#00f0f0' },
   // O
-  { shape: [[1,1],[1,1]], color: '#f0f000' },
+  { shape: [[1, 1], [1, 1]], color: '#f0f000' },
   // T
-  { shape: [[0,1,0],[1,1,1]], color: '#a000f0' },
+  { shape: [[0, 1, 0], [1, 1, 1]], color: '#a000f0' },
   // S
-  { shape: [[0,1,1],[1,1,0]], color: '#00f000' },
+  { shape: [[0, 1, 1], [1, 1, 0]], color: '#00f000' },
   // Z
-  { shape: [[1,1,0],[0,1,1]], color: '#f00000' },
+  { shape: [[1, 1, 0], [0, 1, 1]], color: '#f00000' },
   // J
-  { shape: [[1,0,0],[1,1,1]], color: '#0000f0' },
+  { shape: [[1, 0, 0], [1, 1, 1]], color: '#0000f0' },
   // L
-  { shape: [[0,0,1],[1,1,1]], color: '#f0a000' }
+  { shape: [[0, 0, 1], [1, 1, 1]], color: '#f0a000' }
 ]
 
 export function useTetris() {
-  const board = ref([])
-  const currentPiece = ref(null)
-  const currentPos = ref({ x: 0, y: 0 })
-  const nextPiece = ref(null)
+  const board = ref<TetrisCell[][]>([])
+  const currentPiece = ref<Piece | null>(null)
+  const currentPos = ref<Position>({ x: 0, y: 0 })
+  const nextPiece = ref<Piece | null>(null)
   const score = ref(0)
   const lines = ref(0)
   const level = ref(1)
@@ -35,21 +36,21 @@ export function useTetris() {
   const isPaused = ref(false)
   const isGameOver = ref(false)
 
-  let gameTimer = null
+  let gameTimer: ReturnType<typeof setInterval> | null = null
   let speed = INITIAL_SPEED
 
-  function initBoard() {
-    board.value = Array.from({ length: ROWS }, () => 
+  function initBoard(): void {
+    board.value = Array.from({ length: ROWS }, () =>
       Array.from({ length: COLS }, () => ({ filled: false, color: '' }))
     )
   }
 
-  function getRandomPiece() {
+  function getRandomPiece(): Piece {
     const idx = Math.floor(Math.random() * PIECES.length)
     return { ...PIECES[idx], shape: PIECES[idx].shape.map(r => [...r]) }
   }
 
-  function spawnPiece() {
+  function spawnPiece(): void {
     const piece = nextPiece.value || getRandomPiece()
     nextPiece.value = getRandomPiece()
     currentPiece.value = piece
@@ -64,7 +65,7 @@ export function useTetris() {
     }
   }
 
-  function isValidPosition(shape, px, py) {
+  function isValidPosition(shape: number[][], px: number, py: number): boolean {
     for (let r = 0; r < shape.length; r++) {
       for (let c = 0; c < shape[r].length; c++) {
         if (!shape[r][c]) continue
@@ -78,8 +79,10 @@ export function useTetris() {
     return true
   }
 
-  function lockPiece() {
-    const shape = currentPiece.value.shape
+  function lockPiece(): void {
+    const piece = currentPiece.value
+    if (!piece) return
+    const shape = piece.shape
     const { x, y } = currentPos.value
     for (let r = 0; r < shape.length; r++) {
       for (let c = 0; c < shape[r].length; c++) {
@@ -87,7 +90,7 @@ export function useTetris() {
         const by = y + r
         const bx = x + c
         if (by >= 0 && by < ROWS && bx >= 0 && bx < COLS) {
-          board.value[by][bx] = { filled: true, color: currentPiece.value.color }
+          board.value[by][bx] = { filled: true, color: piece.color }
         }
       }
     }
@@ -95,14 +98,14 @@ export function useTetris() {
     spawnPiece()
   }
 
-  function clearLines() {
+  function clearLines(): void {
     let cleared = 0
     for (let r = ROWS - 1; r >= 0; r--) {
       if (board.value[r].every(cell => cell.filled)) {
         board.value.splice(r, 1)
         board.value.unshift(Array.from({ length: COLS }, () => ({ filled: false, color: '' })))
         cleared++
-        r++ // 重新检查当前行
+        r++
       }
     }
 
@@ -112,27 +115,27 @@ export function useTetris() {
       lines.value += cleared
       level.value = Math.floor(lines.value / 10) + 1
       speed = Math.max(80, INITIAL_SPEED - (level.value - 1) * 70)
-      clearInterval(gameTimer)
+      if (gameTimer !== null) clearInterval(gameTimer)
       gameTimer = setInterval(() => moveDown(), speed)
     }
   }
 
-  function moveLeft() {
-    if (!isRunning.value || isPaused.value || isGameOver.value) return
+  function moveLeft(): void {
+    if (!isRunning.value || isPaused.value || isGameOver.value || !currentPiece.value) return
     if (isValidPosition(currentPiece.value.shape, currentPos.value.x - 1, currentPos.value.y)) {
       currentPos.value = { ...currentPos.value, x: currentPos.value.x - 1 }
     }
   }
 
-  function moveRight() {
-    if (!isRunning.value || isPaused.value || isGameOver.value) return
+  function moveRight(): void {
+    if (!isRunning.value || isPaused.value || isGameOver.value || !currentPiece.value) return
     if (isValidPosition(currentPiece.value.shape, currentPos.value.x + 1, currentPos.value.y)) {
       currentPos.value = { ...currentPos.value, x: currentPos.value.x + 1 }
     }
   }
 
-  function moveDown() {
-    if (!isRunning.value || isPaused.value || isGameOver.value) return
+  function moveDown(): void {
+    if (!isRunning.value || isPaused.value || isGameOver.value || !currentPiece.value) return
     if (isValidPosition(currentPiece.value.shape, currentPos.value.x, currentPos.value.y + 1)) {
       currentPos.value = { ...currentPos.value, y: currentPos.value.y + 1 }
     } else {
@@ -140,8 +143,8 @@ export function useTetris() {
     }
   }
 
-  function hardDrop() {
-    if (!isRunning.value || isPaused.value || isGameOver.value) return
+  function hardDrop(): void {
+    if (!isRunning.value || isPaused.value || isGameOver.value || !currentPiece.value) return
     while (isValidPosition(currentPiece.value.shape, currentPos.value.x, currentPos.value.y + 1)) {
       currentPos.value = { ...currentPos.value, y: currentPos.value.y + 1 }
       score.value += 2
@@ -149,15 +152,13 @@ export function useTetris() {
     lockPiece()
   }
 
-  function rotate() {
-    if (!isRunning.value || isPaused.value || isGameOver.value) return
+  function rotate(): void {
+    if (!isRunning.value || isPaused.value || isGameOver.value || !currentPiece.value) return
     const shape = currentPiece.value.shape
-    // 顺时针旋转
-    const rotated = shape[0].map((_, i) => shape.map(r => r[i]).reverse())
+    const rotated: number[][] = shape[0].map((_, i) => shape.map(r => r[i]).reverse())
     if (isValidPosition(rotated, currentPos.value.x, currentPos.value.y)) {
       currentPiece.value = { ...currentPiece.value, shape: rotated }
     } else {
-      // 尝试左右偏移（wall kick）
       for (const offset of [1, -1, 2, -2]) {
         if (isValidPosition(rotated, currentPos.value.x + offset, currentPos.value.y)) {
           currentPiece.value = { ...currentPiece.value, shape: rotated }
@@ -168,8 +169,8 @@ export function useTetris() {
     }
   }
 
-  function startGame() {
-    clearInterval(gameTimer)
+  function startGame(): void {
+    if (gameTimer !== null) clearInterval(gameTimer)
     initBoard()
     score.value = 0
     lines.value = 0
@@ -183,18 +184,18 @@ export function useTetris() {
     gameTimer = setInterval(() => moveDown(), speed)
   }
 
-  function togglePause() {
+  function togglePause(): void {
     if (!isRunning.value || isGameOver.value) return
     isPaused.value = !isPaused.value
     if (isPaused.value) {
-      clearInterval(gameTimer)
+      if (gameTimer !== null) clearInterval(gameTimer)
     } else {
       gameTimer = setInterval(() => moveDown(), speed)
     }
   }
 
-  function endGame() {
-    clearInterval(gameTimer)
+  function endGame(): void {
+    if (gameTimer !== null) clearInterval(gameTimer)
     isRunning.value = false
     isGameOver.value = true
     if (score.value > highScore.value) {
@@ -203,10 +204,9 @@ export function useTetris() {
     }
   }
 
-  // 获取需要渲染的格子（当前方块投影到棋盘上）
-  const renderBoard = computed(() => {
+  const renderBoard = computed<TetrisCell[][]>(() => {
     const display = board.value.map(row => row.map(cell => ({ ...cell })))
-    
+
     if (currentPiece.value && isRunning.value && !isGameOver.value) {
       const shape = currentPiece.value.shape
       const { x, y } = currentPos.value
@@ -229,13 +229,13 @@ export function useTetris() {
   let touchStartY = 0
   let touchStartTime = 0
 
-  function handleTouchStart(e) {
+  function handleTouchStart(e: TouchEvent): void {
     touchStartX = e.touches[0].clientX
     touchStartY = e.touches[0].clientY
     touchStartTime = Date.now()
   }
 
-  function handleTouchEnd(e) {
+  function handleTouchEnd(e: TouchEvent): void {
     const dx = e.changedTouches[0].clientX - touchStartX
     const dy = e.changedTouches[0].clientY - touchStartY
     const dt = Date.now() - touchStartTime
@@ -243,13 +243,11 @@ export function useTetris() {
     const absDy = Math.abs(dy)
 
     if (absDx < 15 && absDy < 15 && dt < 200) {
-      // 点击 = 旋转
       rotate()
       return
     }
-    
+
     if (absDy > absDx && dy > 30) {
-      // 下滑 = 硬降
       hardDrop()
     } else if (absDx > absDy) {
       dx > 0 ? moveRight() : moveLeft()

@@ -1,11 +1,11 @@
-import { createRouter, createWebHashHistory } from 'vue-router'
+import { createRouter, createWebHashHistory, type RouteRecordRaw } from 'vue-router'
 import Home from './views/Home.vue'
 import SnakeGame from './views/SnakeGame.vue'
 import MoleGame from './views/MoleGame.vue'
 import MinesweeperGame from './views/MinesweeperGame.vue'
 import TetrisGame from './views/TetrisGame.vue'
 
-const routes = [
+const routes: RouteRecordRaw[] = [
   { path: '/', name: 'Home', component: Home },
   { path: '/snake', name: 'SnakeGame', component: SnakeGame },
   { path: '/mole', name: 'MoleGame', component: MoleGame },

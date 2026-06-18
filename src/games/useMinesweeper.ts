@@ -1,32 +1,33 @@
-import { ref, computed, reactive } from 'vue'
+import { ref, computed } from 'vue'
+import type { Cell, Level, GameStatus } from '@/types/game'
 
 // 初级: 9x9, 10个雷
-// 中级: 16x16, 40个雷  
+// 中级: 16x16, 40个雷
 // 移动端用 8x8 10雷，PC端用 9x9 10雷
-const LEVELS = {
+const LEVELS: Record<string, Level> = {
   easy: { rows: 9, cols: 9, mines: 10 },
   mobile: { rows: 8, cols: 8, mines: 10 }
 }
 
-function isMobile() {
+function isMobile(): boolean {
   return typeof window !== 'undefined' && window.innerWidth < 768
 }
 
 export function useMinesweeper() {
-  const level = computed(() => isMobile() ? LEVELS.mobile : LEVELS.easy)
-  const board = ref([])
-  const revealed = ref(new Set())
-  const flagged = ref(new Set())
-  const gameStatus = ref('idle') // idle | playing | won | lost
+  const level = computed<Level>(() => isMobile() ? LEVELS.mobile : LEVELS.easy)
+  const board = ref<Cell[][]>([])
+  const revealed = ref(new Set<string>())
+  const flagged = ref(new Set<string>())
+  const gameStatus = ref<GameStatus>('idle')
   const mineCount = ref(level.value.mines)
   const flagCount = ref(0)
   const timer = ref(0)
   const highScore = ref(Number(localStorage.getItem('minesweeper_high_score') || 0))
 
-  let gameTimer = null
-  let minePositions = new Set()
+  let gameTimer: ReturnType<typeof setInterval> | null = null
+  let minePositions = new Set<string>()
 
-  function initBoard() {
+  function initBoard(): void {
     const { rows, cols } = level.value
     board.value = Array.from({ length: rows }, (_, r) =>
       Array.from({ length: cols }, (_, c) => ({
@@ -42,12 +43,12 @@ export function useMinesweeper() {
     gameStatus.value = 'idle'
     flagCount.value = 0
     timer.value = 0
-    clearInterval(gameTimer)
+    if (gameTimer !== null) clearInterval(gameTimer)
   }
 
-  function placeMines(excludeRow, excludeCol) {
+  function placeMines(excludeRow: number, excludeCol: number): void {
     const { rows, cols, mines } = level.value
-    const positions = []
+    const positions: { r: number; c: number }[] = []
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         if (Math.abs(r - excludeRow) <= 1 && Math.abs(c - excludeCol) <= 1) continue
@@ -55,7 +56,6 @@ export function useMinesweeper() {
       }
     }
 
-    // 随机选 mines 个位置
     for (let i = positions.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [positions[i], positions[j]] = [positions[j], positions[i]]
@@ -80,7 +80,7 @@ export function useMinesweeper() {
     mineCount.value = mines
   }
 
-  function countAdjacentMines(row, col) {
+  function countAdjacentMines(row: number, col: number): number {
     const { rows, cols } = level.value
     let count = 0
     for (let dr = -1; dr <= 1; dr++) {
@@ -96,9 +96,9 @@ export function useMinesweeper() {
     return count
   }
 
-  function reveal(row, col) {
+  function reveal(row: number, col: number): void {
     if (gameStatus.value === 'lost' || gameStatus.value === 'won') return
-    
+
     const key = `${row},${col}`
     if (revealed.value.has(key) || flagged.value.has(key)) return
 
@@ -109,12 +109,12 @@ export function useMinesweeper() {
     }
 
     const cell = board.value[row][col]
-    
+
     if (cell.mine) {
       // 踩雷了
       revealAllMines()
       gameStatus.value = 'lost'
-      clearInterval(gameTimer)
+      if (gameTimer !== null) clearInterval(gameTimer)
       return
     }
 
@@ -137,7 +137,7 @@ export function useMinesweeper() {
     checkWin()
   }
 
-  function toggleFlag(row, col) {
+  function toggleFlag(row: number, col: number): void {
     if (gameStatus.value !== 'playing' && gameStatus.value !== 'idle') return
     const key = `${row},${col}`
     if (revealed.value.has(key)) return
@@ -152,7 +152,7 @@ export function useMinesweeper() {
     }
   }
 
-  function revealAllMines() {
+  function revealAllMines(): void {
     const { rows, cols } = level.value
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
@@ -163,7 +163,7 @@ export function useMinesweeper() {
     }
   }
 
-  function checkWin() {
+  function checkWin(): void {
     const { rows, cols } = level.value
     let allRevealed = true
     for (let r = 0; r < rows; r++) {
@@ -177,7 +177,7 @@ export function useMinesweeper() {
     }
     if (allRevealed) {
       gameStatus.value = 'won'
-      clearInterval(gameTimer)
+      if (gameTimer !== null) clearInterval(gameTimer)
       if (timer.value < highScore.value || highScore.value === 0) {
         highScore.value = timer.value
         localStorage.setItem('minesweeper_high_score', String(timer.value))
@@ -185,25 +185,25 @@ export function useMinesweeper() {
     }
   }
 
-  function startTimer() {
-    clearInterval(gameTimer)
+  function startTimer(): void {
+    if (gameTimer !== null) clearInterval(gameTimer)
     timer.value = 0
     gameTimer = setInterval(() => {
       timer.value++
     }, 1000)
   }
 
-  function startGame() {
-    clearInterval(gameTimer)
+  function startGame(): void {
+    if (gameTimer !== null) clearInterval(gameTimer)
     initBoard()
   }
 
-  function getCellStyle(row, col) {
+  function getCellStyle(row: number, col: number): Record<string, string> {
     const key = `${row},${col}`
     const cell = board.value[row]?.[col]
     if (!cell) return {}
     if (!revealed.value.has(key)) return {}
-    
+
     if (cell.mine) return { color: '#ff4444' }
     const colors = ['', '#3498db', '#2ecc71', '#e74c3c', '#8e44ad', '#f39c12', '#1abc9c', '#e67e22', '#95a5a6']
     return { color: colors[cell.adjacentMines] || '#fff' }
@@ -212,27 +212,23 @@ export function useMinesweeper() {
   const remainingMines = computed(() => mineCount.value - flagCount.value)
 
   // 移动端长按标记
-  let longPressTimer = null
-  function handleCellPointerDown(row, col) {
+  let longPressTimer: ReturnType<typeof setTimeout> | null = null
+
+  function handleCellPointerDown(row: number, col: number): void {
     longPressTimer = setTimeout(() => {
       toggleFlag(row, col)
     }, 500)
   }
 
-  function handleCellPointerUp(row, col) {
-    clearTimeout(longPressTimer)
+  function handleCellPointerUp(_row: number, _col: number): void {
+    if (longPressTimer !== null) clearTimeout(longPressTimer)
   }
 
-  function handleCellClick(row, col) {
-    if (isMobile()) {
-      // 移动端：点击 = 翻开，长按 = 标记
-      reveal(row, col)
-    } else {
-      reveal(row, col)
-    }
+  function handleCellClick(row: number, col: number): void {
+    reveal(row, col)
   }
 
-  function handleCellRightClick(row, col) {
+  function handleCellRightClick(row: number, col: number): void {
     toggleFlag(row, col)
   }
 
