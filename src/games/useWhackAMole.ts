@@ -3,8 +3,8 @@ import type { Hole, MoleType } from '@/types/game'
 
 const HOLE_COUNT = 9
 const GAME_DURATION = 30 // 秒
-const INITIAL_INTERVAL = 800 // ms
-const MIN_INTERVAL = 400
+const INITIAL_INTERVAL = 1200 // ms，初始出洞间隔
+const MIN_INTERVAL = 600 // ms，最快出洞间隔
 
 export function useWhackAMole() {
   const holes = ref<Hole[]>(Array.from({ length: HOLE_COUNT }, (_, i) => ({
@@ -71,7 +71,7 @@ export function useWhackAMole() {
       timeLeft.value--
       // 逐渐加速
       if (currentInterval > MIN_INTERVAL && timeLeft.value % 5 === 0) {
-        currentInterval = Math.max(MIN_INTERVAL, currentInterval - 60)
+        currentInterval = Math.max(MIN_INTERVAL, currentInterval - 40)
         if (moleTimer !== null) clearInterval(moleTimer)
         moleTimer = setInterval(() => spawnMole(), currentInterval)
       }
