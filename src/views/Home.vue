@@ -41,6 +41,15 @@
         </div>
         <div class="game-arrow">→</div>
       </div>
+
+      <div class="game-card" @click="$router.push('/sudoku')">
+        <div class="game-icon">🔢</div>
+        <div class="game-info">
+          <h2>数独</h2>
+          <p>经典9×9数独，逻辑推理填数字</p>
+        </div>
+        <div class="game-arrow">→</div>
+      </div>
     </div>
   </div>
 </template>

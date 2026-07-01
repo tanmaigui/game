@@ -52,3 +52,14 @@ export interface Position {
   x: number
   y: number
 }
+
+// 数独
+export interface SudokuCell {
+  value: number
+  solution: number
+  isGiven: boolean
+  isError: boolean
+  notes: number[]
+}
+
+export type SudokuDifficulty = 'easy' | 'medium' | 'hard'

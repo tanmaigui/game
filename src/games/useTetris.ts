@@ -228,14 +228,23 @@ export function useTetris() {
   let touchStartX = 0
   let touchStartY = 0
   let touchStartTime = 0
+  let touchOnControl = false // 是否触摸在操作按钮上
 
   function handleTouchStart(e: TouchEvent): void {
+    const target = e.target as HTMLElement
+    // 如果触摸点在操作按钮上，标记后跳过手势处理
+    touchOnControl = target.closest('.controls') !== null
+    if (touchOnControl) return
     touchStartX = e.touches[0].clientX
     touchStartY = e.touches[0].clientY
     touchStartTime = Date.now()
   }
 
   function handleTouchEnd(e: TouchEvent): void {
+    if (touchOnControl) {
+      touchOnControl = false
+      return
+    }
     const dx = e.changedTouches[0].clientX - touchStartX
     const dy = e.changedTouches[0].clientY - touchStartY
     const dt = Date.now() - touchStartTime
