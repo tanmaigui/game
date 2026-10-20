@@ -149,8 +149,9 @@ const isDesktop = computed(() => winSize.value.w >= 769)
 
 // 计算格子边长：同时受可用高度和可用宽度约束，保证 10x20 棋盘完整可见
 const cellSize = computed(() => {
-  // 移动端底部为两行操作按钮（约150px），桌面端隐藏
-  const reserveH = isDesktop.value ? 90 : 210
+  // 顶部栏 + 操作区需预留的垂直高度
+  // 移动端操作区为两行按钮（约150px），另留约50px 底部留白，避免按钮贴到屏幕底边
+  const reserveH = isDesktop.value ? 90 : 250
   const reserveW = 110 // 侧边栏 + 间距
   const byHeight = (winSize.value.h - reserveH) / ROWS
   const byWidth = (winSize.value.w - reserveW) / COLS
