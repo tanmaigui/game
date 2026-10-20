@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import type { TetrisCell, Piece, Position } from '@/types/game'
 
 const COLS = 10
@@ -79,6 +79,14 @@ export function useTetris() {
     return true
   }
 
+  // 统一重建自动下落计时器（速度或节奏变化时调用）
+  function restartTimer(): void {
+    if (gameTimer !== null) clearInterval(gameTimer)
+    gameTimer = null
+    if (!isRunning.value || isPaused.value || isGameOver.value) return
+    gameTimer = setInterval(() => moveDown(), speed)
+  }
+
   function lockPiece(): void {
     const piece = currentPiece.value
     if (!piece) return
@@ -96,46 +104,48 @@ export function useTetris() {
     }
     clearLines()
     spawnPiece()
+    // 新方块落地后重置下落节奏，避免刚生成就立刻下落
+    restartTimer()
   }
 
   function clearLines(): void {
-    let cleared = 0
-    for (let r = ROWS - 1; r >= 0; r--) {
-      if (board.value[r].every(cell => cell.filled)) {
-        board.value.splice(r, 1)
-        board.value.unshift(Array.from({ length: COLS }, () => ({ filled: false, color: '' })))
-        cleared++
-        r++
-      }
-    }
+    const remaining = board.value.filter(row => !row.every(cell => cell.filled))
+    const cleared = ROWS - remaining.length
+    if (cleared === 0) return
 
-    if (cleared > 0) {
-      const points = [0, 100, 300, 500, 800]
-      score.value += points[cleared] * level.value
-      lines.value += cleared
-      level.value = Math.floor(lines.value / 10) + 1
-      speed = Math.max(80, INITIAL_SPEED - (level.value - 1) * 70)
-      if (gameTimer !== null) clearInterval(gameTimer)
-      gameTimer = setInterval(() => moveDown(), speed)
+    while (remaining.length < ROWS) {
+      remaining.unshift(Array.from({ length: COLS }, () => ({ filled: false, color: '' })))
     }
+    board.value = remaining
+
+    const points = [0, 100, 300, 500, 800]
+    score.value += points[cleared] * level.value
+    lines.value += cleared
+    level.value = Math.floor(lines.value / 10) + 1
+    speed = Math.max(80, INITIAL_SPEED - (level.value - 1) * 70)
+  }
+
+  // 当前是否允许操作
+  function canPlay(): boolean {
+    return isRunning.value && !isPaused.value && !isGameOver.value && currentPiece.value !== null
   }
 
   function moveLeft(): void {
-    if (!isRunning.value || isPaused.value || isGameOver.value || !currentPiece.value) return
+    if (!canPlay() || !currentPiece.value) return
     if (isValidPosition(currentPiece.value.shape, currentPos.value.x - 1, currentPos.value.y)) {
       currentPos.value = { ...currentPos.value, x: currentPos.value.x - 1 }
     }
   }
 
   function moveRight(): void {
-    if (!isRunning.value || isPaused.value || isGameOver.value || !currentPiece.value) return
+    if (!canPlay() || !currentPiece.value) return
     if (isValidPosition(currentPiece.value.shape, currentPos.value.x + 1, currentPos.value.y)) {
       currentPos.value = { ...currentPos.value, x: currentPos.value.x + 1 }
     }
   }
 
   function moveDown(): void {
-    if (!isRunning.value || isPaused.value || isGameOver.value || !currentPiece.value) return
+    if (!canPlay() || !currentPiece.value) return
     if (isValidPosition(currentPiece.value.shape, currentPos.value.x, currentPos.value.y + 1)) {
       currentPos.value = { ...currentPos.value, y: currentPos.value.y + 1 }
     } else {
@@ -144,27 +154,30 @@ export function useTetris() {
   }
 
   function hardDrop(): void {
-    if (!isRunning.value || isPaused.value || isGameOver.value || !currentPiece.value) return
+    if (!canPlay() || !currentPiece.value) return
+    let distance = 0
     while (isValidPosition(currentPiece.value.shape, currentPos.value.x, currentPos.value.y + 1)) {
       currentPos.value = { ...currentPos.value, y: currentPos.value.y + 1 }
-      score.value += 2
+      distance++
     }
+    score.value += distance * 2
     lockPiece()
   }
 
   function rotate(): void {
-    if (!isRunning.value || isPaused.value || isGameOver.value || !currentPiece.value) return
+    if (!canPlay() || !currentPiece.value) return
     const shape = currentPiece.value.shape
     const rotated: number[][] = shape[0].map((_, i) => shape.map(r => r[i]).reverse())
-    if (isValidPosition(rotated, currentPos.value.x, currentPos.value.y)) {
-      currentPiece.value = { ...currentPiece.value, shape: rotated }
-    } else {
-      for (const offset of [1, -1, 2, -2]) {
-        if (isValidPosition(rotated, currentPos.value.x + offset, currentPos.value.y)) {
-          currentPiece.value = { ...currentPiece.value, shape: rotated }
-          currentPos.value = { ...currentPos.value, x: currentPos.value.x + offset }
-          return
-        }
+    const { x, y } = currentPos.value
+    // 原地旋转失败时做 wall kick：先左右微调，再向上抬起（贴地/贴墙旋转）
+    const kicks: [number, number][] = [
+      [0, 0], [1, 0], [-1, 0], [2, 0], [-2, 0], [0, -1], [1, -1], [-1, -1]
+    ]
+    for (const [dx, dy] of kicks) {
+      if (isValidPosition(rotated, x + dx, y + dy)) {
+        currentPiece.value = { ...currentPiece.value, shape: rotated }
+        currentPos.value = { x: x + dx, y: y + dy }
+        return
       }
     }
   }
@@ -181,17 +194,13 @@ export function useTetris() {
     isGameOver.value = false
     nextPiece.value = getRandomPiece()
     spawnPiece()
-    gameTimer = setInterval(() => moveDown(), speed)
+    restartTimer()
   }
 
   function togglePause(): void {
     if (!isRunning.value || isGameOver.value) return
     isPaused.value = !isPaused.value
-    if (isPaused.value) {
-      if (gameTimer !== null) clearInterval(gameTimer)
-    } else {
-      gameTimer = setInterval(() => moveDown(), speed)
-    }
+    restartTimer()
   }
 
   function endGame(): void {
@@ -204,12 +213,37 @@ export function useTetris() {
     }
   }
 
+  // 硬降落点的 y 坐标（用于幽灵方块预览）
+  const ghostY = computed<number>(() => {
+    if (!currentPiece.value || !isRunning.value || isGameOver.value) return -1
+    let gy = currentPos.value.y
+    while (isValidPosition(currentPiece.value.shape, currentPos.value.x, gy + 1)) gy++
+    return gy
+  })
+
   const renderBoard = computed<TetrisCell[][]>(() => {
     const display = board.value.map(row => row.map(cell => ({ ...cell })))
 
     if (currentPiece.value && isRunning.value && !isGameOver.value) {
       const shape = currentPiece.value.shape
       const { x, y } = currentPos.value
+
+      // 先画落点预览（幽灵方块）
+      const gy = ghostY.value
+      if (gy > y) {
+        for (let r = 0; r < shape.length; r++) {
+          for (let c = 0; c < shape[r].length; c++) {
+            if (!shape[r][c]) continue
+            const by = gy + r
+            const bx = x + c
+            if (by >= 0 && by < ROWS && bx >= 0 && bx < COLS && !display[by][bx].filled) {
+              display[by][bx] = { filled: false, color: '', ghost: true }
+            }
+          }
+        }
+      }
+
+      // 再画当前方块
       for (let r = 0; r < shape.length; r++) {
         for (let c = 0; c < shape[r].length; c++) {
           if (!shape[r][c]) continue
@@ -267,9 +301,18 @@ export function useTetris() {
 
   initBoard()
 
+  // 离开页面时清理定时器，避免游戏循环在后台继续运行
+  onUnmounted(() => {
+    if (gameTimer !== null) clearInterval(gameTimer)
+    gameTimer = null
+  })
+
   return {
+    COLS,
+    ROWS,
     board,
     renderBoard,
+    ghostY,
     currentPiece,
     nextPiece,
     score,

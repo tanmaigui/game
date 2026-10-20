@@ -41,6 +41,7 @@ export interface TetrisCell {
   filled: boolean
   color: string
   active?: boolean
+  ghost?: boolean
 }
 
 export interface Piece {

@@ -25,12 +25,12 @@
     <!-- 游戏区域 -->
     <div class="game-main">
       <!-- 棋盘 -->
-      <div class="board" :style="{ '--cols': 10, '--rows': 20, fontSize: cellSize + 'px' }">
+      <div class="board" :style="{ '--cols': COLS, '--rows': ROWS, '--cell-size': cellSize + 'px' }">
         <div
           v-for="(cell, i) in flatBoard"
           :key="i"
           class="cell"
-          :class="{ filled: cell.filled, active: cell.active }"
+          :class="{ filled: cell.filled, active: cell.active, ghost: cell.ghost }"
           :style="cell.filled ? { background: cell.color } : {}"
         />
       </div>
@@ -124,11 +124,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useTetris } from '@/games/useTetris'
 
 const {
-  renderBoard, nextPiece, score, lines, level, highScore,
+  COLS, ROWS, renderBoard, nextPiece, score, lines, level, highScore,
   isRunning, isPaused, isGameOver,
   startGame, togglePause, moveLeft, moveRight, moveDown,
   hardDrop, rotate, handleTouchStart, handleTouchEnd
@@ -136,13 +136,23 @@ const {
 
 const flatBoard = computed(() => renderBoard.value.flat())
 
+// 监听窗口尺寸变化，让棋盘随屏幕自适应
+const winSize = ref({ w: window.innerWidth, h: window.innerHeight })
+function onResize(): void {
+  winSize.value = { w: window.innerWidth, h: window.innerHeight }
+}
+
+// 桌面端（>=769px）隐藏底部操作栏，垂直空间更充裕
+const isDesktop = computed(() => winSize.value.w >= 769)
+
+// 计算格子边长：同时受可用高度和可用宽度约束，保证 10x20 棋盘完整可见
 const cellSize = computed(() => {
-  if (typeof window !== 'undefined') {
-    const maxH = Math.min(window.innerHeight - 220, 500)
-    const size = Math.floor(maxH / 20)
-    return Math.max(8, Math.min(size * 0.5, 12))
-  }
-  return 10
+  const reserveH = isDesktop.value ? 90 : 150
+  const reserveW = 110 // 侧边栏 + 间距
+  const byHeight = (winSize.value.h - reserveH) / ROWS
+  const byWidth = (winSize.value.w - reserveW) / COLS
+  const size = Math.floor(Math.min(byHeight, byWidth))
+  return Math.max(10, Math.min(size, 30))
 })
 
 function onKeyDown(e: KeyboardEvent): void {
@@ -152,13 +162,25 @@ function onKeyDown(e: KeyboardEvent): void {
     case 'ArrowRight': case 'd': case 'D': e.preventDefault(); moveRight(); break
     case 'ArrowDown': case 's': case 'S': e.preventDefault(); moveDown(); break
     case 'ArrowUp': case 'w': case 'W': e.preventDefault(); rotate(); break
-    case ' ': e.preventDefault(); hardDrop(); break
-    case 'p': case 'P': case 'Escape': e.preventDefault(); togglePause(); break
+    case ' ':
+      e.preventDefault()
+      if (!e.repeat) hardDrop() // 长按空格不连续硬降
+      break
+    case 'p': case 'P': case 'Escape':
+      e.preventDefault()
+      if (!e.repeat) togglePause()
+      break
   }
 }
 
-onMounted(() => window.addEventListener('keydown', onKeyDown))
-onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
+onMounted(() => {
+  window.addEventListener('keydown', onKeyDown)
+  window.addEventListener('resize', onResize)
+})
+onUnmounted(() => {
+  window.removeEventListener('keydown', onKeyDown)
+  window.removeEventListener('resize', onResize)
+})
 </script>
 
 <style scoped>
@@ -209,21 +231,22 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
 
 .board {
   display: grid;
-  grid-template-columns: repeat(var(--cols), 1fr);
-  grid-template-rows: repeat(var(--rows), 1fr);
+  grid-template-columns: repeat(var(--cols), var(--cell-size));
+  grid-template-rows: repeat(var(--rows), var(--cell-size));
   gap: 1px;
   background: rgba(255,255,255,0.03);
   border: 2px solid rgba(255,255,255,0.1);
   border-radius: 4px;
   padding: 1px;
+  flex-shrink: 0;
 }
 
 .cell {
-  aspect-ratio: 1;
+  width: var(--cell-size);
+  height: var(--cell-size);
   background: #0d0d1f;
   border-radius: 1px;
-  min-width: 12px;
-  min-height: 12px;
+  box-sizing: border-box;
 }
 
 .cell.filled {
@@ -233,6 +256,13 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
 
 .cell.active {
   border-color: rgba(255,255,255,0.3);
+}
+
+/* 落点预览 */
+.cell.ghost {
+  background: rgba(255,255,255,0.06);
+  border: 1px dashed rgba(255,255,255,0.22);
+  border-radius: 2px;
 }
 
 .side-panel {

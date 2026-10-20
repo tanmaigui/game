@@ -45,7 +45,10 @@
             v-for="(cell, c) in row"
             :key="`${r},${c}`"
             class="cell"
-            :class="getCellClass(r, c)"
+            :class="[
+              getCellClass(r, c),
+              { 'box-right': c % 3 === 2 && c < 8, 'box-bottom': r % 3 === 2 && r < 8 }
+            ]"
             @click="selectCell(r, c)"
           >
             <span v-if="cell.value > 0" class="cell-value">{{ cell.value }}</span>
@@ -131,7 +134,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useSudoku } from '@/games/useSudoku'
 import type { SudokuDifficulty } from '@/types/game'
 
@@ -326,25 +329,12 @@ onUnmounted(() => {
   transition: background 0.1s;
 }
 
-/* 3x3 宫格粗边框 */
-.cell:nth-child(3n) {
-  border-right: 2px solid rgba(255,255,255,0.15);
+/* 3x3 宫格分隔线 */
+.cell.box-right {
+  border-right: 2px solid rgba(255,255,255,0.32);
 }
-.cell:nth-child(9n) {
-  border-right: none;
-}
-.board :nth-child(9n+1) {
-  /* first column of each row */;
-}
-.board :nth-child(3) ~ .cell:nth-child(3n+1) {
-  /* handled by grid */;
-}
-
-/* 第3行和第6行底部加粗边框 */
-/* 使用 row-based approach via inline style or class */
-.cell {
-  border-right: 1px solid rgba(255,255,255,0.08);
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+.cell.box-bottom {
+  border-bottom: 2px solid rgba(255,255,255,0.32);
 }
 
 .cell-given {
