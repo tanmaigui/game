@@ -2,10 +2,19 @@
   <div class="tetris-page" @touchstart="handleTouchStart" @touchend="handleTouchEnd">
     <!-- 顶部栏 -->
     <header class="game-topbar">
-      <button class="btn-back" @click="$router.push('/')">
-        <span class="back-icon">←</span>
-        <span class="back-text">返回</span>
-      </button>
+      <div class="topbar-left">
+        <button class="btn-back" @click="$router.push('/')">
+          <span class="back-icon">←</span>
+          <span class="back-text">返回</span>
+        </button>
+        <button
+          class="btn-sound"
+          :title="soundEnabled ? '关闭音效' : '开启音效'"
+          @click="toggleSound"
+        >
+          {{ soundEnabled ? '🔊' : '🔇' }}
+        </button>
+      </div>
       <div class="score-area">
         <div class="score-item">
           <span class="label">分数</span>
@@ -128,6 +137,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useTetris } from '@/games/useTetris'
+import { soundEnabled, toggleSound } from '@/utils/sound'
 
 const {
   COLS, ROWS, renderBoard, nextPiece, score, lines, level, highScore,
@@ -218,6 +228,27 @@ onUnmounted(() => {
   cursor: pointer; font-size: 14px;
 }
 .btn-back:active { background: rgba(255,255,255,0.12); }
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-sound {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-sound:active { background: rgba(255,255,255,0.14); }
 
 .score-area { display: flex; gap: 14px; }
 .score-item { display: flex; flex-direction: column; align-items: center; }

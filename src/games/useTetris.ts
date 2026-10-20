@@ -1,5 +1,6 @@
 import { ref, computed, onUnmounted } from 'vue'
 import type { TetrisCell, Piece, Position } from '@/types/game'
+import { playSound } from '@/utils/sound'
 
 const COLS = 10
 const ROWS = 20
@@ -102,6 +103,7 @@ export function useTetris() {
         }
       }
     }
+    playSound('lock')
     clearLines()
     spawnPiece()
     // 新方块落地后重置下落节奏，避免刚生成就立刻下落
@@ -118,11 +120,14 @@ export function useTetris() {
     }
     board.value = remaining
 
+    const prevLevel = level.value
     const points = [0, 100, 300, 500, 800]
     score.value += points[cleared] * level.value
     lines.value += cleared
     level.value = Math.floor(lines.value / 10) + 1
     speed = Math.max(80, INITIAL_SPEED - (level.value - 1) * 70)
+    playSound('clear', { lines: cleared })
+    if (level.value > prevLevel) playSound('levelup')
   }
 
   // 当前是否允许操作
@@ -134,6 +139,7 @@ export function useTetris() {
     if (!canPlay() || !currentPiece.value) return
     if (isValidPosition(currentPiece.value.shape, currentPos.value.x - 1, currentPos.value.y)) {
       currentPos.value = { ...currentPos.value, x: currentPos.value.x - 1 }
+      playSound('move')
     }
   }
 
@@ -141,6 +147,7 @@ export function useTetris() {
     if (!canPlay() || !currentPiece.value) return
     if (isValidPosition(currentPiece.value.shape, currentPos.value.x + 1, currentPos.value.y)) {
       currentPos.value = { ...currentPos.value, x: currentPos.value.x + 1 }
+      playSound('move')
     }
   }
 
@@ -177,6 +184,7 @@ export function useTetris() {
       if (isValidPosition(rotated, x + dx, y + dy)) {
         currentPiece.value = { ...currentPiece.value, shape: rotated }
         currentPos.value = { x: x + dx, y: y + dy }
+        playSound('rotate')
         return
       }
     }
@@ -195,6 +203,7 @@ export function useTetris() {
     nextPiece.value = getRandomPiece()
     spawnPiece()
     restartTimer()
+    playSound('start')
   }
 
   function togglePause(): void {
@@ -207,6 +216,7 @@ export function useTetris() {
     if (gameTimer !== null) clearInterval(gameTimer)
     isRunning.value = false
     isGameOver.value = true
+    playSound('gameover')
     if (score.value > highScore.value) {
       highScore.value = score.value
       localStorage.setItem('tetris_high_score', String(score.value))
