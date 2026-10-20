@@ -64,10 +64,7 @@
 
     <!-- 操作按钮 -->
     <div class="controls">
-      <button class="ctrl-btn" @click="rotate" @touchstart.prevent="rotate">
-        <span>↻</span>
-      </button>
-      <div class="dpad-group">
+      <div class="ctrl-row">
         <button class="ctrl-btn" @click="moveLeft" @touchstart.prevent="moveLeft">
           <span>◀</span>
         </button>
@@ -78,12 +75,17 @@
           <span>▶</span>
         </button>
       </div>
-      <button class="ctrl-btn drop-btn" @click="hardDrop" @touchstart.prevent="hardDrop">
-        <span>⏬</span>
-      </button>
-      <button class="ctrl-btn pause-btn" @click="togglePause" @touchstart.prevent="togglePause">
-        <span>{{ isPaused ? '▶' : '⏸' }}</span>
-      </button>
+      <div class="ctrl-row">
+        <button class="ctrl-btn rotate-btn" @click="rotate" @touchstart.prevent="rotate">
+          <span>↻</span>
+        </button>
+        <button class="ctrl-btn drop-btn" @click="hardDrop" @touchstart.prevent="hardDrop">
+          <span>⏬</span>
+        </button>
+        <button class="ctrl-btn pause-btn" @click="togglePause" @touchstart.prevent="togglePause">
+          <span>{{ isPaused ? '▶' : '⏸' }}</span>
+        </button>
+      </div>
     </div>
 
     <!-- 开始遮罩 -->
@@ -147,7 +149,8 @@ const isDesktop = computed(() => winSize.value.w >= 769)
 
 // 计算格子边长：同时受可用高度和可用宽度约束，保证 10x20 棋盘完整可见
 const cellSize = computed(() => {
-  const reserveH = isDesktop.value ? 90 : 150
+  // 移动端底部为两行操作按钮（约150px），桌面端隐藏
+  const reserveH = isDesktop.value ? 90 : 210
   const reserveW = 110 // 侧边栏 + 间距
   const byHeight = (winSize.value.h - reserveH) / ROWS
   const byWidth = (winSize.value.w - reserveW) / COLS
@@ -313,37 +316,39 @@ onUnmounted(() => {
 
 .controls {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 10px 0;
-  padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
+  gap: 10px;
+  padding: 12px 0;
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 12px));
+}
+
+.ctrl-row {
+  display: flex;
+  gap: 14px;
 }
 
 .ctrl-btn {
-  width: 48px;
-  height: 48px;
+  width: 58px;
+  height: 58px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 12px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 16px;
   color: #ccc;
-  font-size: 18px;
+  font-size: 24px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
 
 .ctrl-btn:active {
-  background: rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.18);
   transform: scale(0.92);
 }
 
-.dpad-group {
-  display: flex;
-  gap: 6px;
-}
-
+.rotate-btn { color: #0a84ff; }
 .down-btn { color: #4cd964; }
 .drop-btn { color: #ff9500; }
 .pause-btn { color: #ffd700; }
